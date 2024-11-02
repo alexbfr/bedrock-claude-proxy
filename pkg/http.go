@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type HttpConfig struct {
@@ -93,8 +94,20 @@ func (this *HTTPService) HandleComplete(writer http.ResponseWriter, request *htt
 		this.ResponseError(fmt.Errorf("method not allowed"), writer)
 		return
 	}
-	if request.Header.Get("Content-Type") != "application/json" {
-		this.ResponseError(fmt.Errorf("invalid content type"), writer)
+
+	contentType := request.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "application/json") {
+		bodyBytes, err := io.ReadAll(request.Body)
+		if err != nil {
+			this.ResponseError(fmt.Errorf("failed to read request body: %v", err), writer)
+			return
+		}
+		defer request.Body.Close()
+
+		errorMsg := fmt.Sprintf("invalid content type %s with body %s", contentType, string(bodyBytes))
+		Log.Infof("Error: %s\n", errorMsg)
+
+		this.ResponseError(fmt.Errorf(errorMsg), writer)
 		return
 	}
 	defer request.Body.Close()
@@ -146,8 +159,19 @@ func (this *HTTPService) HandleMessageComplete(writer http.ResponseWriter, reque
 		this.ResponseError(fmt.Errorf("method not allowed"), writer)
 		return
 	}
-	if request.Header.Get("Content-Type") != "application/json" {
-		this.ResponseError(fmt.Errorf("invalid content type"), writer)
+	contentType := request.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "application/json") {
+		bodyBytes, err := io.ReadAll(request.Body)
+		if err != nil {
+			this.ResponseError(fmt.Errorf("failed to read request body: %v", err), writer)
+			return
+		}
+		defer request.Body.Close()
+
+		errorMsg := fmt.Sprintf("invalid content type %s with body %s", contentType, string(bodyBytes))
+		Log.Error("Error: %s\n", errorMsg)
+
+		this.ResponseError(fmt.Errorf(errorMsg), writer)
 		return
 	}
 
